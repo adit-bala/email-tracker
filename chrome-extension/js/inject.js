@@ -7,8 +7,8 @@ chrome.runtime.onMessage.addListener((request) => {
     }
 });
 
-// Function to override the Send button functionality
 const overrideSend = () => {
+    // Hook onto the send button
     const sendButton = document.querySelector('div[role="button"][aria-label^="Send"]');
     if (sendButton) {
         // Attach the custom event listener
@@ -18,6 +18,6 @@ const overrideSend = () => {
 
 // Custom handler to run before sending the email
 function handleSendButtonClick() {
-    // Your custom code
+    // todo: inject pixel logic
     alert("injecting pixel :D");
 }

@@ -1,13 +1,11 @@
 console.log("Service worker is active!");
-// todo: make this works with multiple tabs open
+
+// Wait to see if the url indicates that the `compose` window is open
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  if (tab.url && tab.url.startsWith("https://mail.google.com/mail/")) {
-    if (tab.url.includes('compose') && changeInfo.status === 'complete') {
-      console.log("Compose Button Exists -> Sending to inject script");
+  if (tab.url && tab.url.startsWith("https://mail.google.com/mail/") && tab.url.includes('compose')) {
+    // Only send message to inject script once it has been loaded
+    if (changeInfo.status === 'complete') {
       chrome.tabs.sendMessage(tab.id, { message: "compose_button_exists" });
-      //window.injectedButton = true;
-    } else {
-      //window.injectedButton = false;
     }
   }
 });
