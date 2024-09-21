@@ -20,4 +20,11 @@ const overrideSend = () => {
 function handleSendButtonClick() {
     // todo: inject pixel logic
     alert("injecting pixel :D");
+    const emailData = {
+        subject: document.querySelector('input[aria-label^="Subject"]').value,
+    };
+    chrome.runtime.sendMessage({ 
+        message: "process_email", 
+        data: emailData 
+    });
 }
