@@ -19,12 +19,23 @@ const overrideSend = () => {
 // Custom handler to run before sending the email
 function handleSendButtonClick() {
     // todo: inject pixel logic
-    alert("injecting pixel :D");
+    const emailBodyElement = document.querySelector('div[aria-label^="Message Body"]');
+    const uniqueId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    if (emailBodyElement) {
+        const trackingPixel = `{uniqueId}`;
+        // Append the tracking pixel
+        emailBodyElement.innerHTML += trackingPixel;
+        console.log("Tracking pixel injected with UID:", uniqueId);
+    }
+    const subjectElement = document.querySelector('input[aria-label^="Subject"]');
+    const subject = subjectElement ? subjectElement.value : "";
     const emailData = {
-        subject: document.querySelector('input[aria-label^="Subject"]').value,
+        subject: subject,
+        uniqueId: uniqueId
     };
-    chrome.runtime.sendMessage({ 
-        message: "process_email", 
-        data: emailData 
+    alert("injecting pixel :D");
+    chrome.runtime.sendMessage({
+        message: "process_email",
+        data: emailData
     });
 }

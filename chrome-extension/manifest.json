@@ -1,24 +1,30 @@
 {
-    "manifest_version": 3,
-    "name": "Email Tracker",
-    "description": "See if recipients have opened your email",
-    "version": "1.0",
-    "content_scripts": [
-        {
-            "matches": [
-                "https://mail.google.com/mail/u/*/"
-            ],
-            "js": [
-                "js/inject.js"
-            ]
-        }
-    ],
-    "background": {
-        "service_worker": "js/service-worker.js"
-    },
-    "permissions": [
-        "scripting",
-        "activeTab",
-        "tabs"
-    ]    
+  "manifest_version": 3,
+  "name": "Email Tracker",
+  "description": "See if recipients have opened your email",
+  "version": "1.0",
+  "permissions": [
+    "identity",
+    "scripting",
+    "activeTab",
+    "tabs",
+    "storage"
+  ],
+  "host_permissions": [
+    "https://mail.google.com/*",
+    "https://www.googleapis.com/*"
+  ],
+  "background": {
+    "service_worker": "js/service-worker.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://mail.google.com/*"],
+      "js": ["js/inject.js"]
+    }
+  ],
+  "oauth2": {
+    "client_id": "126378674254-sp374useuuv7b2v7597tqguj544q2vb5.apps.googleusercontent.com",
+    "scopes": ["https://www.googleapis.com/auth/gmail.readonly"]
   }
+}
