@@ -82,7 +82,7 @@ async function processEmail(emailData) {
     const token = await ensureAuthenticated();
 
     // TODO: FIX SEARCH QUERY
-    const query = `in:sent subject:"${emailData.subject}" "uid=${emailData.uniqueId}"`;
+    const query = `in:sent subject:"${emailData.subject}" `;
 
     // Search for the email
     const searchResponse = await fetch(`https://www.googleapis.com/gmail/v1/users/me/messages?q=${encodeURIComponent(query)}`, {
