@@ -1,4 +1,4 @@
-console.debug("email-tracker: init");
+console.log("email-tracker: init");
 
 const baseTrackingPixelUrl = 'https://yourserver.com/pixel.png';
 let uniqueId;
@@ -62,21 +62,15 @@ const handleSendButtonClick = () => {
     // Extract the email subject
     const subjectElement = document.querySelector('input[aria-label^="Subject"]');
     const subject = subjectElement ? subjectElement.value : "";
-    // Extract the email body content
-    const emailBodyElement = document.querySelector('div[aria-label^="Message Body"]');
-    let emailContent = "";
-    if (emailBodyElement) {
-        emailContent = emailBodyElement.innerText || emailBodyElement.textContent || "";
-    }
-    // Extract the first 10 words
-    const words = emailContent.trim().split(/\s+/).slice(0, 10);
-    const emailSnippet = words.join(' ');
+ 
+
+    // Compute current date and time
+    const date = new Date();
+
     const emailData = {
         subject: subject,
-        emailSnippet: emailSnippet,
-        uniqueId: uniqueId
+        dateAtTimeOfSend: date.toISOString()
     };
-    alert("injecting pixel :D");
     chrome.runtime.sendMessage({
         message: "process_email",
         data: emailData
