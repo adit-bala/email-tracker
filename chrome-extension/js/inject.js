@@ -1,6 +1,7 @@
 console.log("email-tracker: init");
 
-const baseTrackingPixelUrl = 'https://yourserver.com/pixel.png';
+const DOMAIN = "email-track.deno.dev"
+const baseTrackingPixelUrl = `https://${DOMAIN}`;
 let uniqueId;
 let emailBodyElement;
 
@@ -19,7 +20,7 @@ const insertTrackingPixel = (uniqueId) => {
     emailBodyElement = document.querySelector('div[aria-label^="Message Body"]');
     if (emailBodyElement) {
         uniqueId = generateUniqueId();
-        const trackingPixelUrl = `${baseTrackingPixelUrl}?uid=${uniqueId}`;
+        const trackingPixelUrl = `${baseTrackingPixelUrl}/${uniqueId}/pixel.png`;
         // Check if a tracking pixel from your server already exists
         if (!emailBodyElement.querySelector(`img[src^="${baseTrackingPixelUrl}"]`)) {
             // Create the tracking pixel element
@@ -60,15 +61,11 @@ const handleSendButtonClick = () => {
     const subjectElement = document.querySelector('input[aria-label^="Subject"]');
     const subject = subjectElement ? subjectElement.value : "";
 
-    // Compute current time in milliseconds since Unix epoch
-    const date = Date.now();
-
     const emailData = {
         uniqueId: uniqueId,
         subject: subject,
-        dateAtTimeOfSend: date.toString()
+        dateAtTimeOfSend: Date.now().toString()
     };
-    alert("sending to server :D");
     chrome.runtime.sendMessage({
         message: "process_email",
         data: emailData

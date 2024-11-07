@@ -1,6 +1,7 @@
 console.log("Service worker is active!");
 
 let authToken = null;
+const DOMAIN = "email-track.deno.dev"
 
 // Function to get OAuth2 token
 function getAuthToken(interactive) {
@@ -177,26 +178,52 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
       }
 
       const messageData = await messageResponse.json();
-      const emailDateMs = messageData.payload.headers
-        .find(h => h.name.toLowerCase() === 'date')?.value
-        ? new Date(messageData.payload.headers.find(h => h.name.toLowerCase() === 'date').value).getTime()
-        : null;
-      
-      console.log("Email Date from header:", emailDateMs, emailDateMs );
+      // Extract all headers
+      const headers = {};
+      messageData.payload.headers.forEach(header => {
+        headers[header.name.toLowerCase()] = header.value;
+      });
+
+      console.log("All email headers:", JSON.stringify(headers, null, 6));
+
+
+      const emailDateMs = headers.date ? new Date(headers.date).getTime() : null;
       
       const dateAtTimeOfSendMs = new Date(Number(emailData.dateAtTimeOfSend)).getTime();
-      console.log("date at time of send:", emailData.dateAtTimeOfSend, dateAtTimeOfSendMs);
 
       const thresholdSecondsMs = 10 * 1000; // check if we are within 10 seconds
       const lowerBound = dateAtTimeOfSendMs - thresholdSecondsMs;
       const upperBound = dateAtTimeOfSendMs + thresholdSecondsMs;
 
-      if (emailDateMs >= lowerBound && emailDateMs <= upperBound) {
+      if (emailDateMs && dateAtTimeOfSendMs && emailDateMs >= lowerBound && emailDateMs <= upperBound) {
         console.log("Found matching recent email:", messageData.snippet);
-        console.log("email uuid:", emailData.uniqueId);
         emailFound = true;
         // Process the email content here
-        // Include subject, recipients?
+        const uniqueId = emailData.uniqueId;
+        const emailData = {
+          subject: headers.subject || '',
+          email_id: messageId,
+          sender: headers.from || '',
+          recipient: headers.to || '',
+          dateAtTimeOfSend: emailDateMs.toString()
+        };
+        // Send a notification to the server
+        try {
+          const serverResponse = await fetch(`https://${DOMAIN}/${uniqueId}/pixel.png`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(emailData),
+          });
+
+          if (!serverResponse.ok) {
+            throw new Error(`Server responded with status: ${serverResponse.status}`);
+          }
+          console.log('Notification sent to server successfully');
+        } catch (error) {
+          console.error('Failed to send notification to server:', error);
+        }
       }
     }
 
