@@ -37,10 +37,6 @@ const MAX_RETRIES = 5;
 const DELAY_MS = 20000; // 20 seconds
 const STORAGE_KEY_PREFIX = 'email_sleep_'; // Prefix for storage keys
 
-// Utility function to generate unique IDs for each email processing task
-function generateUniqueId() {
-  return `sleep_${Math.random().toString(36).substring(2, 15)}`;
-}
 
 // store sleep data
 function storeEmailSleepData(id, data) {
@@ -84,7 +80,7 @@ function removeEmailRetryData(id) {
 // Listen for tab updates to detect Gmail loading and compose window
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   if (changeInfo.status === 'complete' && tab.url && tab.url.startsWith("https://mail.google.com/")) {
-    console.log("Gmail loaded. Checking authentication status.");
+    console.log("Gmail loaded :p Checking auth status.");
     ensureAuthenticated();
   }
 
@@ -109,7 +105,7 @@ async function processEmail(emailData) {
     const token = await ensureAuthenticated();
 
     // Generate a unique ID for this email processing task
-    const sleepId = generateUniqueId();
+    const sleepId = emailData.uniqueId;
 
     // Initialize sleep data
     const sleepData = {
@@ -181,26 +177,32 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
       }
 
       const messageData = await messageResponse.json();
+      const emailDateMs = messageData.payload.headers
+        .find(h => h.name.toLowerCase() === 'date')?.value
+        ? new Date(messageData.payload.headers.find(h => h.name.toLowerCase() === 'date').value).getTime()
+        : null;
+      
+      console.log("Email Date from header:", emailDateMs, emailDateMs );
+      
+      const dateAtTimeOfSendMs = new Date(Number(emailData.dateAtTimeOfSend)).getTime();
+      console.log("date at time of send:", emailData.dateAtTimeOfSend, dateAtTimeOfSendMs);
 
-      // Extract the internal date (timestamp) from the message
-      const internalDate = new Date(parseInt(messageData.internalDate));
+      const thresholdSecondsMs = 10 * 1000; // check if we are within 10 seconds
+      const lowerBound = dateAtTimeOfSendMs - thresholdSecondsMs;
+      const upperBound = dateAtTimeOfSendMs + thresholdSecondsMs;
 
-      // Check if the email was sent recently
-      if (internalDate > alarm.emailData.dateAtTimeOfSend ) {
+      if (emailDateMs >= lowerBound && emailDateMs <= upperBound) {
         console.log("Found matching recent email:", messageData.snippet);
         emailFound = true;
         // Process the email content here
-        // ...
       }
     }
 
     if (!emailFound) {
       if (currentAttempt < MAX_RETRIES) {
         console.log(`Email not found on attempt ${currentAttempt}. Scheduling next retry in ${DELAY_MS / 60000} seconds.`);
-
         // Update the sleep data with the incremented attempt count
         sleepData.attempt = currentAttempt;
-        sleepData.lastAttemptTime = Date.now();
         await storeEmailSleepData(sleepId, sleepData);
 
         // Reschedule the alarm for the next attempt
@@ -212,12 +214,11 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
         chrome.alarms.clear(sleepId);
       }
     } else {
-      // Email found, clean up
       await removeEmailRetryData(sleepId);
       chrome.alarms.clear(sleepId);
     }
 
   } catch (error) {
-    console.error(`Error handling alarm "${sleepId}":`, error);
+    console.error(`Error handling alarm "${sleepId}":`, error.message);
   }
 });

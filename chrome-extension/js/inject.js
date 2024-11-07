@@ -4,6 +4,10 @@ const baseTrackingPixelUrl = 'https://yourserver.com/pixel.png';
 let uniqueId;
 let emailBodyElement;
 
+const generateUniqueId = () => {
+    return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+}
+
 // Message listener for when the compose button is detected
 chrome.runtime.onMessage.addListener((request) => {
     if (request.message === "compose_button_exists") {
@@ -11,14 +15,9 @@ chrome.runtime.onMessage.addListener((request) => {
     }
 });
 
-const generateUniqueId = () => {
-    return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-}
-
 const insertTrackingPixel = (uniqueId) => {
     emailBodyElement = document.querySelector('div[aria-label^="Message Body"]');
     if (emailBodyElement) {
-        // Construct the tracking pixel URL
         uniqueId = generateUniqueId();
         const trackingPixelUrl = `${baseTrackingPixelUrl}?uid=${uniqueId}`;
         // Check if a tracking pixel from your server already exists
@@ -53,24 +52,23 @@ const overrideSend = () => {
         uniqueId = generateUniqueId();
         insertTrackingPixel(uniqueId);
         sendButton.addEventListener('click', handleSendButtonClick);
-      }
-    
+    }
 }
-
 
 const handleSendButtonClick = () => {
     // Extract the email subject
     const subjectElement = document.querySelector('input[aria-label^="Subject"]');
     const subject = subjectElement ? subjectElement.value : "";
- 
 
-    // Compute current date and time
-    const date = new Date();
+    // Compute current time in milliseconds since Unix epoch
+    const date = Date.now();
 
     const emailData = {
+        uniqueId: uniqueId,
         subject: subject,
-        dateAtTimeOfSend: date.toISOString()
+        dateAtTimeOfSend: date.toString()
     };
+    alert("sending to server :D");
     chrome.runtime.sendMessage({
         message: "process_email",
         data: emailData
