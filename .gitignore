@@ -2,3 +2,4 @@
 chrome-extension.crx
 chrome-extension.pem
 deno.lock
+.env
