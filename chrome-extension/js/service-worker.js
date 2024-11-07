@@ -196,6 +196,7 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
         console.log("email uuid:", emailData.uniqueId);
         emailFound = true;
         // Process the email content here
+        // Include subject, recipients?
       }
     }
 
