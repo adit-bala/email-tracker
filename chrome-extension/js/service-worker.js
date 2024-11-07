@@ -65,7 +65,7 @@ function getEmailSleepData(id) {
 }
 
 // remove sleep data
-function removeEmailRetryData(id) {
+function removeEmailSleepData(id) {
   return new Promise((resolve, reject) => {
     chrome.storage.local.remove([STORAGE_KEY_PREFIX + id], () => {
       if (chrome.runtime.lastError) {
@@ -193,6 +193,7 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
 
       if (emailDateMs >= lowerBound && emailDateMs <= upperBound) {
         console.log("Found matching recent email:", messageData.snippet);
+        console.log("email uuid:", emailData.uniqueId);
         emailFound = true;
         // Process the email content here
       }
@@ -210,11 +211,11 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
       } else {
         console.error(`No matching sent email found after ${MAX_RETRIES} attempts for alarm "${sleepId}".`);
 
-        await removeEmailRetryData(sleepId);
+        await removeEmailSleepData(sleepId);
         chrome.alarms.clear(sleepId);
       }
     } else {
-      await removeEmailRetryData(sleepId);
+      await removeEmailSleepData(sleepId);
       chrome.alarms.clear(sleepId);
     }
 
