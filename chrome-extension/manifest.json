@@ -21,7 +21,7 @@
   "content_scripts": [
     {
       "matches": ["https://mail.google.com/*"],
-      "js": ["js/config.js", "js/inject.js"]
+      "js": ["js/inject.js"]
     }
   ],
   "oauth2": {

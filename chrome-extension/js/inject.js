@@ -1,6 +1,3 @@
-// Import the CONFIG object
-importScripts('config.js');
-
 console.log("email-tracker: init");
 
 const DOMAIN = "email-track.deno.dev";
@@ -20,13 +17,14 @@ chrome.runtime.onMessage.addListener((request) => {
     }
 });
 
-const insertTrackingPixel = (uniqueId) => {
+const insertTrackingPixel = () => {
     emailBodyElement = document.querySelector('div[aria-label^="Message Body"]');
     if (emailBodyElement) {
-        uniqueId = generateUniqueId();
-        const trackingPixelUrl = `${baseTrackingPixelUrl}/${uniqueId}/pixel.png`;
         // Check if a tracking pixel from your server already exists
         if (!emailBodyElement.querySelector(`img[src^="${baseTrackingPixelUrl}"]`)) {
+            // generate uuid here to avoid race conditions due to insertTrackingPixel being called multiple times
+            uniqueId = generateUniqueId();
+            const trackingPixelUrl = `${baseTrackingPixelUrl}/${uniqueId}/pixel.png`;
             // Create the tracking pixel element
             const trackingPixelElement = document.createElement('img');
             trackingPixelElement.src = trackingPixelUrl;
@@ -39,7 +37,6 @@ const insertTrackingPixel = (uniqueId) => {
             range.selectNodeContents(emailBodyElement);
             range.collapse(false);
             range.insertNode(trackingPixelElement);
-
             console.log("Tracking pixel injected with UID:", uniqueId);
         } else {
             console.log("Tracking pixel from server already exists in email body");
@@ -47,15 +44,14 @@ const insertTrackingPixel = (uniqueId) => {
     } else {
         console.error("email body element not found");
     }
-    
+
 }
 
 const overrideSend = () => {
     // Hook onto the send button
     const sendButton = document.querySelector('div[role="button"][aria-label^="Send"]');
     if (sendButton) {
-        uniqueId = generateUniqueId();
-        insertTrackingPixel(uniqueId);
+        insertTrackingPixel();
         sendButton.addEventListener('click', handleSendButtonClick);
     }
 }

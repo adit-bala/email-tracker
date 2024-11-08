@@ -1,10 +1,8 @@
-// Import the CONFIG object
-importScripts('config.js');
-
 console.log("Service worker is active!");
 
 let authToken = null;
 const DOMAIN = "email-track.deno.dev";
+const baseTrackingPixelUrl = `https://${DOMAIN}`;
 
 // Function to get OAuth2 token
 function getAuthToken(interactive) {
@@ -212,7 +210,7 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
         };
         // Send a notification to the server
         try {
-          const serverResponse = await fetch(`${DOMAIN}/${uniqueId}/pixel.png`, {
+          const serverResponse = await fetch(`${baseTrackingPixelUrl}/${uniqueId}/pixel.png`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json'
