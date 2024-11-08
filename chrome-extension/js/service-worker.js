@@ -1,7 +1,10 @@
+// Import the CONFIG object
+importScripts('config.js');
+
 console.log("Service worker is active!");
 
 let authToken = null;
-const DOMAIN = "email-track.deno.dev"
+const DOMAIN = CONFIG.SERVER_DOMAIN;
 
 // Function to get OAuth2 token
 function getAuthToken(interactive) {
@@ -188,7 +191,7 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
 
 
       const emailDateMs = headers.date ? new Date(headers.date).getTime() : null;
-      
+
       const dateAtTimeOfSendMs = new Date(Number(emailData.dateAtTimeOfSend)).getTime();
 
       const thresholdSecondsMs = 10 * 1000; // check if we are within 10 seconds
@@ -200,7 +203,7 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
         emailFound = true;
         // Process the email content here
         const uniqueId = emailData.uniqueId;
-        const emailData = {
+        const emailPayload = {
           subject: headers.subject || '',
           email_id: messageId,
           sender: headers.from || '',
@@ -209,12 +212,13 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
         };
         // Send a notification to the server
         try {
-          const serverResponse = await fetch(`https://${DOMAIN}/${uniqueId}/pixel.png`, {
+          const serverResponse = await fetch(`${DOMAIN}/${uniqueId}/pixel.png`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
+              'X-Extension-Auth': CONFIG.CORS_KEY
             },
-            body: JSON.stringify(emailData),
+            body: JSON.stringify(emailPayload),
           });
 
           if (!serverResponse.ok) {

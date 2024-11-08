@@ -1,7 +1,18 @@
 import { Application, Router } from "jsr:@oak/oak";
 import { Context } from "jsr:@oak/oak/context";
+import { oakCors } from "https://deno.land/x/cors/mod.ts";
 import { transparentPixelPNG } from "./pixel.ts";
 import { EmailData } from "./types.ts";
+
+const authorizationMiddleware = async (ctx: Context, next: () => Promise<unknown>) => {
+  const authHeader = ctx.request.headers.get('X-Extension-Auth');
+  if (authHeader !== Deno.env.get('CORS_KEY')) {
+    ctx.response.status = 403;
+    ctx.response.body = 'Unauthorized';
+    return;
+  }
+  await next();
+};
 
 // setup
 const kv = await Deno.openKv();
@@ -58,6 +69,16 @@ router.post("/:uuid/pixel.png", async (ctx) => {
 router;
 
 const app = new Application();
+
+// TODO: only allow from chrome extension in production
+app.use(oakCors({
+  origin: "*",
+  methods: ["GET", "POST"],
+  allowedHeaders: ["Content-Type", "X-Extension-Auth"],
+}));
+
+// Apply the checkSecretKey middleware to all routes
+app.use(authorizationMiddleware);
 app.use(router.routes());
 app.use(router.allowedMethods());
 
