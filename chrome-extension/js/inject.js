@@ -1,6 +1,10 @@
+// Import the CONFIG object
+importScripts('config.js');
+
 console.log("email-tracker: init");
 
-const DOMAIN = "email-track.deno.dev"
+const DOMAIN = "email-track.deno.dev";
+
 const baseTrackingPixelUrl = `https://${DOMAIN}`;
 let uniqueId;
 let emailBodyElement;

@@ -4,7 +4,7 @@ importScripts('config.js');
 console.log("Service worker is active!");
 
 let authToken = null;
-const DOMAIN = CONFIG.SERVER_DOMAIN;
+const DOMAIN = "email-track.deno.dev";
 
 // Function to get OAuth2 token
 function getAuthToken(interactive) {
@@ -215,8 +215,7 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
           const serverResponse = await fetch(`${DOMAIN}/${uniqueId}/pixel.png`, {
             method: 'POST',
             headers: {
-              'Content-Type': 'application/json',
-              'X-Extension-Auth': CONFIG.CORS_KEY
+              'Content-Type': 'application/json'
             },
             body: JSON.stringify(emailPayload),
           });

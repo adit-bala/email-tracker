@@ -4,13 +4,8 @@ import { oakCors } from "https://deno.land/x/cors/mod.ts";
 import { transparentPixelPNG } from "./pixel.ts";
 import { EmailData } from "./types.ts";
 
-const authorizationMiddleware = async (ctx: Context, next: () => Promise<unknown>) => {
-  const authHeader = ctx.request.headers.get('X-Extension-Auth');
-  if (authHeader !== Deno.env.get('CORS_KEY')) {
-    ctx.response.status = 403;
-    ctx.response.body = 'Unauthorized';
-    return;
-  }
+const authorizationMiddleware = async (_ctx: Context, next: () => Promise<unknown>) => {
+
   await next();
 };
 
@@ -74,7 +69,7 @@ const app = new Application();
 app.use(oakCors({
   origin: "*",
   methods: ["GET", "POST"],
-  allowedHeaders: ["Content-Type", "X-Extension-Auth"],
+  allowedHeaders: ["Content-Type"],
 }));
 
 // Apply the checkSecretKey middleware to all routes
@@ -83,5 +78,3 @@ app.use(router.routes());
 app.use(router.allowedMethods());
 
 app.listen({ port: 8080 });
-
-console.log("Server running on http://localhost:8080");
