@@ -129,9 +129,14 @@ router.post("/:uuid/pixel.png", authorizationMiddleware, async (ctx) => {
   try {
     const body = await ctx.request.body.json();
     const email_path_key = ctx.request.url.pathname;
-    console.log("email_key: ", email_path_key);
+    const timestamp = Date.now();
+    const emailData: EmailData = {
+      ...body,
+      storedAt: timestamp,
+    };
+      console.log("email_key: ", email_path_key);
     console.log("body: ", body);
-    await kv.set(["emailData", email_path_key], body);
+    await kv.set(["emailData", email_path_key], emailData);
     ctx.response.status = 200;
   } catch (e) {
     ctx.response.status = 400;
@@ -154,3 +159,40 @@ app.use(router.routes());
 app.use(router.allowedMethods());
 
 app.listen({ port: 8080 });
+
+Deno.cron("Delete old email data", "0 0 * * *", async () => {
+  console.log("Starting daily cleanup of old email data");
+  const sixtyDaysInMs = 60 * 24 * 60 * 60 * 1000;
+  const now = Date.now();
+  const iterator = kv.list({ prefix: ["emailData"] });
+
+  try {
+    for await (const entry of iterator) {
+      const emailData = entry.value as EmailData;
+      const storedAt = emailData.storedAt;
+
+      if (storedAt) {
+        const age = now - storedAt;
+        if (age > sixtyDaysInMs) {
+          try {
+            await kv.delete(entry.key);
+            console.log(`Deleted email data at key ${entry.key} (age: ${age} ms)`);
+          } catch (error) {
+            console.error(`Error deleting entry at key ${entry.key}:`, error);
+          }
+        }
+      } else {
+        console.warn(`No timestamp for entry at key ${entry.key}. Deleting as precaution.`);
+        try {
+          await kv.delete(entry.key);
+        } catch (error) {
+          console.error(`Error deleting entry without timestamp at key ${entry.key}:`, error);
+        }
+      }
+    }
+    console.log("Daily cleanup of old email data completed");
+  } catch (error) {
+    console.error("Error during daily cleanup of old email data:", error);
+  }
+});
+
