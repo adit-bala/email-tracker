@@ -225,7 +225,7 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
           const serverResponse = await fetch(`${serverUrl}/${uniqueId}/pixel.png`, {
             method: 'POST',
             headers: {
-              'Authorization': `Bearer ${idToken}`,
+              'Authorization': `Bearer ${token}`,
               'Content-Type': 'application/json'
             },
             body: JSON.stringify(emailPayload),
