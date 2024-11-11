@@ -2,14 +2,14 @@ console.log("Service worker is active!");
 
 let authToken = null;
 const DOMAIN = "email-track.deno.dev";
-const baseTrackingPixelUrl = `https://${DOMAIN}`;
+const serverUrl = `https://${DOMAIN}`;
 
 // Function to get OAuth2 token
 function getAuthToken(interactive) {
   return new Promise((resolve, reject) => {
     chrome.identity.getAuthToken({ interactive }, function (token) {
       if (chrome.runtime.lastError || !token) {
-        console.error("Error getting auth token:", chrome.runtime.lastError);
+        console.error("Error getting auth token:", chrome.runtime.lastError.message);
         reject(new Error('Failed to get auth token'));
       } else {
         resolve(token);
@@ -24,13 +24,21 @@ async function ensureAuthenticated() {
     return authToken;
   }
   try {
-    authToken = await getAuthToken(false);
-    if (!authToken) {
+    // First, try to get the token non-interactively
+    try {
+      authToken = await getAuthToken(false);
+    } catch (error) {
+      console.log("Non-interactive auth failed, trying interactive...");
       authToken = await getAuthToken(true);
     }
+    if (!authToken) {
+      throw new Error("Failed to obtain auth token");
+    }
+
     return authToken;
   } catch (error) {
-    console.error("Authentication failed:", error);
+    console.error("Authentication failed:", error.message);
+    authToken = null; // Reset the token if authentication fails
     throw error;
   }
 }
@@ -83,7 +91,11 @@ function removeEmailSleepData(id) {
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   if (changeInfo.status === 'complete' && tab.url && tab.url.startsWith("https://mail.google.com/")) {
     console.log("Gmail loaded :p Checking auth status.");
-    ensureAuthenticated();
+    try {
+      ensureAuthenticated();
+    } catch (error) {
+      console.error("Error ensuring auth:", error.message);
+    }
   }
 
   if (tab.url && tab.url.startsWith("https://mail.google.com/mail/") && tab.url.includes('compose')) {
@@ -210,9 +222,10 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
         };
         // Send a notification to the server
         try {
-          const serverResponse = await fetch(`${baseTrackingPixelUrl}/${uniqueId}/pixel.png`, {
+          const serverResponse = await fetch(`${serverUrl}/${uniqueId}/pixel.png`, {
             method: 'POST',
             headers: {
+              'Authorization': `Bearer ${idToken}`,
               'Content-Type': 'application/json'
             },
             body: JSON.stringify(emailPayload),
