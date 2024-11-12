@@ -2,15 +2,19 @@ console.log("Service worker is active!");
 
 let authToken = null;
 const DOMAIN = "email-track.deno.dev";
-const serverUrl = `https://${DOMAIN}`;
-
+const LOCALHOST = "localhost:8080";
+const isDev = true;
+const serverUrl = isDev ? `http://${LOCALHOST}` : `https://${DOMAIN}`;
 // Function to get OAuth2 token
 function getAuthToken(interactive) {
   return new Promise((resolve, reject) => {
     chrome.identity.getAuthToken({ interactive }, function (token) {
       if (chrome.runtime.lastError || !token) {
-        console.error("Error getting auth token:", chrome.runtime.lastError.message);
-        reject(new Error('Failed to get auth token'));
+        console.error(
+          "Error getting auth token:",
+          chrome.runtime.lastError.message,
+        );
+        reject(new Error("Failed to get auth token"));
       } else {
         resolve(token);
       }
@@ -44,9 +48,8 @@ async function ensureAuthenticated() {
 }
 
 const MAX_RETRIES = 5;
-const DELAY_MS = 20000; // 20 seconds
-const STORAGE_KEY_PREFIX = 'email_sleep_'; // Prefix for storage keys
-
+const DELAY_MS = 1000; // 1 second
+const STORAGE_KEY_PREFIX = "email_sleep_"; // Prefix for storage keys
 
 // store sleep data
 function storeEmailSleepData(id, data) {
@@ -89,7 +92,10 @@ function removeEmailSleepData(id) {
 
 // Listen for tab updates to detect Gmail loading and compose window
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  if (changeInfo.status === 'complete' && tab.url && tab.url.startsWith("https://mail.google.com/")) {
+  if (
+    changeInfo.status === "complete" && tab.url &&
+    tab.url.startsWith("https://mail.google.com/")
+  ) {
     console.log("Gmail loaded :p Checking auth status.");
     try {
       ensureAuthenticated();
@@ -98,8 +104,11 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
     }
   }
 
-  if (tab.url && tab.url.startsWith("https://mail.google.com/mail/") && tab.url.includes('compose')) {
-    if (changeInfo.status === 'complete') {
+  if (
+    tab.url && tab.url.startsWith("https://mail.google.com/mail/") &&
+    tab.url.includes("compose")
+  ) {
+    if (changeInfo.status === "complete") {
       chrome.tabs.sendMessage(tabId, { message: "compose_button_exists" });
     }
   }
@@ -134,8 +143,9 @@ async function processEmail(emailData) {
     // Create an alarm to trigger the first attempt after DELAY_MS
     chrome.alarms.create(sleepId, { delayInMinutes: DELAY_MS / 60000 });
 
-    console.log(`Scheduled sleep alarm "${sleepId}" for email with subject: "${emailData.subject}"`);
-
+    console.log(
+      `Scheduled sleep alarm "${sleepId}" for email with subject: "${emailData.subject}"`,
+    );
   } catch (error) {
     console.error("Error initiating email processing:", error);
   }
@@ -162,12 +172,17 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
     const query = `in:sent subject:"${emailData.subject}"`;
 
     // Search for the email
-    const searchResponse = await fetch(`https://www.googleapis.com/gmail/v1/users/me/messages?q=${encodeURIComponent(query)}&maxResults=10`, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
+    const searchResponse = await fetch(
+      `https://www.googleapis.com/gmail/v1/users/me/messages?q=${
+        encodeURIComponent(query)
+      }&maxResults=10`,
+      {
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
       },
-    });
+    );
 
     if (!searchResponse.ok) {
       throw new Error(`Gmail API error: ${searchResponse.statusText}`);
@@ -179,79 +194,99 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
     if (searchData.messages && searchData.messages.length > 0) {
       const messageId = searchData.messages[0].id;
       // Fetch the message content
-      const messageResponse = await fetch(`https://www.googleapis.com/gmail/v1/users/me/messages/${messageId}?format=full`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
+      const messageResponse = await fetch(
+        `https://www.googleapis.com/gmail/v1/users/me/messages/${messageId}?format=full`,
+        {
+          headers: {
+            "Authorization": `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
         },
-      });
+      );
 
       if (!messageResponse.ok) {
-        throw new Error(`Failed to fetch email message: ${messageResponse.statusText}`);
+        throw new Error(
+          `Failed to fetch email message: ${messageResponse.statusText}`,
+        );
       }
 
       const messageData = await messageResponse.json();
       // Extract all headers
       const headers = {};
-      messageData.payload.headers.forEach(header => {
+      messageData.payload.headers.forEach((header) => {
         headers[header.name.toLowerCase()] = header.value;
       });
 
       console.log("All email headers:", JSON.stringify(headers, null, 6));
 
+      const emailDateMs = headers.date
+        ? new Date(headers.date).getTime()
+        : null;
 
-      const emailDateMs = headers.date ? new Date(headers.date).getTime() : null;
-
-      const dateAtTimeOfSendMs = new Date(Number(emailData.dateAtTimeOfSend)).getTime();
+      const dateAtTimeOfSendMs = new Date(Number(emailData.dateAtTimeOfSend))
+        .getTime();
 
       const thresholdSecondsMs = 10 * 1000; // check if we are within 10 seconds
       const lowerBound = dateAtTimeOfSendMs - thresholdSecondsMs;
       const upperBound = dateAtTimeOfSendMs + thresholdSecondsMs;
 
-      if (emailDateMs && dateAtTimeOfSendMs && emailDateMs >= lowerBound && emailDateMs <= upperBound) {
+      if (
+        emailDateMs && dateAtTimeOfSendMs && emailDateMs >= lowerBound &&
+        emailDateMs <= upperBound
+      ) {
         console.log("Found matching recent email:", messageData.snippet);
         emailFound = true;
         // Process the email content here
         const uniqueId = emailData.uniqueId;
         const emailPayload = {
-          subject: headers.subject || '',
+          subject: headers.subject || "",
           email_id: messageId,
-          sender: headers.from || '',
-          recipient: headers.to || '',
-          dateAtTimeOfSend: emailDateMs.toString()
+          sender: headers.from || "",
+          recipient: headers.to || "",
+          dateAtTimeOfSend: emailDateMs.toString(),
         };
         // Send a notification to the server
         try {
-          const serverResponse = await fetch(`${serverUrl}/${uniqueId}/pixel.png`, {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
+          const serverResponse = await fetch(
+            `${serverUrl}/${uniqueId}/pixel.png`,
+            {
+              method: "POST",
+              headers: {
+                "Authorization": `Bearer ${token}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(emailPayload),
             },
-            body: JSON.stringify(emailPayload),
-          });
+          );
 
           if (!serverResponse.ok) {
-            throw new Error(`Server responded with status: ${serverResponse.status}`);
+            throw new Error(
+              `Server responded with status: ${serverResponse.status}`,
+            );
           }
-          console.log('Notification sent to server successfully');
+          console.log("Notification sent to server successfully");
         } catch (error) {
-          console.error('Failed to send notification to server:', error);
+          console.error("Failed to send notification to server:", error);
         }
       }
     }
 
     if (!emailFound) {
       if (currentAttempt < MAX_RETRIES) {
-        console.log(`Email not found on attempt ${currentAttempt}. Scheduling next retry in ${DELAY_MS / 60000} seconds.`);
+        const backoffDelay = Math.pow(2, currentAttempt) * (DELAY_MS / 60000);
+        console.log(
+          `Email not found on attempt ${currentAttempt}. Scheduling next retry in ${backoffDelay} minutes.`
+        );
         // Update the sleep data with the incremented attempt count
         sleepData.attempt = currentAttempt;
         await storeEmailSleepData(sleepId, sleepData);
 
-        // Reschedule the alarm for the next attempt
-        chrome.alarms.create(sleepId, { delayInMinutes: DELAY_MS / 60000 });
+        // Reschedule the alarm for the next attempt with exponential backoff
+        chrome.alarms.create(sleepId, { delayInMinutes: backoffDelay });
       } else {
-        console.error(`No matching sent email found after ${MAX_RETRIES} attempts for alarm "${sleepId}".`);
+        console.error(
+          `No matching sent email found after ${MAX_RETRIES} attempts for alarm "${sleepId}".`,
+        );
 
         await removeEmailSleepData(sleepId);
         chrome.alarms.clear(sleepId);
@@ -260,7 +295,6 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
       await removeEmailSleepData(sleepId);
       chrome.alarms.clear(sleepId);
     }
-
   } catch (error) {
     console.error(`Error handling alarm "${sleepId}":`, error.message);
   }
