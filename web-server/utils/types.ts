@@ -4,5 +4,6 @@ export interface EmailData {
   sender: string;
   recipient: string;
   dateAtTimeOfSend: string;
+  numberOfOpens?: number;
   storedAt?: number;
 }
