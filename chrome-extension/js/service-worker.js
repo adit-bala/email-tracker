@@ -226,9 +226,12 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
       const dateAtTimeOfSendMs = new Date(Number(emailData.dateAtTimeOfSend))
         .getTime();
 
-      const thresholdSecondsMs = 10 * 1000; // check if we are within 10 seconds
+      const baseThresholdSeconds = 10;
+      const thresholdSecondsMs = baseThresholdSeconds * Math.pow(2, attempt) * 1000;
       const lowerBound = dateAtTimeOfSendMs - thresholdSecondsMs;
-      const upperBound = dateAtTimeOfSendMs + thresholdSecondsMs;
+      const upperBound = Date.now(); 
+
+      console.log(`Attempt ${currentAttempt}: Searching for emails between ${new Date(lowerBound).toISOString()} and ${new Date(upperBound).toISOString()}`);
 
       if (
         emailDateMs && dateAtTimeOfSendMs && emailDateMs >= lowerBound &&
