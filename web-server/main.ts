@@ -2,9 +2,9 @@ import { Application, Router } from "jsr:@oak/oak";
 import { Context } from "jsr:@oak/oak/context";
 import { oakCors } from "https://deno.land/x/cors/mod.ts";
 import Mailgun from "https://deno.land/x/mailgun@v1.3.0/index.ts";
-import { transparentPixelPNG } from "../utils/pixel.ts";
-import { EmailData } from "../utils/types.ts";
-import { extractNameAndEmail, formatDate, calculateTimeToOpen } from "../utils/utils.ts";
+import { transparentPixelPNG } from "./utils/pixel.ts";
+import { EmailData } from "./utils/types.ts";
+import { extractNameAndEmail, formatDate, calculateTimeToOpen } from "./utils/utils.ts";
 import { htmlTemplate } from "./emailTemplate.ts";
 
 // Setup

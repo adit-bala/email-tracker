@@ -1,6 +1,6 @@
 // serve_template.ts
 import { formatDate, calculateTimeToOpen } from "../utils/utils.ts";
-import { htmlTemplate } from "../server/emailTemplate.ts";
+import { htmlTemplate } from "../emailTemplate.ts";
 
 // Sample data
 const testData = {
