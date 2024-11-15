@@ -118,14 +118,26 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.message === "process_email") {
     console.log("Processing email data:", request.data.subject);
-    processEmail(request.data);
+    processEmail(request.data, sender); // Pass sender to processEmail
   }
 });
 
 // Function to process email data and initiate retry mechanism
-async function processEmail(emailData) {
+async function processEmail(emailData, sender) {
   try {
     const token = await ensureAuthenticated();
+
+    // Get the user index from sender.tab.url
+    let userIndex = 0;
+    if (sender && sender.tab && sender.tab.url) {
+      const url = sender.tab.url;
+      const userIndexMatch = url.match(/mail\/u\/(\d+)\//);
+      userIndex = userIndexMatch ? parseInt(userIndexMatch[1], 10) : 0;
+      console.log(`User index extracted: ${userIndex}`);
+    }
+
+    // Include the userIndex in emailData
+    emailData.userIndex = userIndex.toString();
 
     // Generate a unique ID for this email processing task
     const sleepId = emailData.uniqueId;
@@ -216,9 +228,6 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
       messageData.payload.headers.forEach((header) => {
         headers[header.name.toLowerCase()] = header.value;
       });
-
-      console.log("All email headers:", JSON.stringify(headers, null, 6));
-
       const emailDateMs = headers.date
         ? new Date(headers.date).getTime()
         : null;
@@ -247,6 +256,7 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
           sender: headers.from || "",
           recipient: headers.to || "",
           dateAtTimeOfSend: emailDateMs.toString(),
+          userIndex: emailData.userIndex || "",
         };
         // Send a notification to the server
         try {
