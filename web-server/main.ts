@@ -13,6 +13,16 @@ import {
 } from "@utils";
 import { htmlTemplate } from "./emailTemplate.ts";
 
+// Add subject mapping at the top of the file
+const subjectMapping: { [key: number]: string } = {
+  1: "Exciting! Someone just read your email: '{subject}'",
+  2: "Twice the attention! Your email '{subject}' was opened for the second time.",
+  3: "Your email '{subject}' has caught their eye for the third time!",
+  10: "10th open milestone—your email '{subject}' is making waves!",
+  20: "Your email '{subject}' has been revisited 20 times—keep the momentum going!",
+  50: "Half a century of opens! Your email '{subject}' is a hit.",
+};
+
 // Setup
 // KV store
 let kv: Deno.Kv;
@@ -175,10 +185,8 @@ router.get("/:uuid/pixel.png", async (ctx) => {
 
     const numberOfOpens = emailData.numberOfOpens;
 
-    // Decide whether to send a notification
-    const sendNotificationOpens = [1, 2, 3, 10, 50, 100];
-
-    if (sendNotificationOpens.includes(numberOfOpens)) {
+    // Use the keys of subjectMapping instead of sendNotificationOpens
+    if (numberOfOpens in subjectMapping) {
       // Extract sender email
       const [{ email: senderEmail }] = extractNamesAndEmails(emailData.sender);
       console.log("senderEmail: ", senderEmail);
@@ -198,7 +206,9 @@ router.get("/:uuid/pixel.png", async (ctx) => {
       const userIndex = emailData.userIndex || 0;
       const emailLink =
         `https://mail.google.com/mail/u/${userIndex}/#inbox/${emailData.email_id}`;
-      const emailSubject = `Your email: ${emailData.subject} was opened!`;
+
+      const emailSubject = subjectMapping[numberOfOpens].replace('{subject}', emailData.subject);
+
       const [{ name: recipientName, email: recipientEmail }] =
         extractNamesAndEmails(emailData.recipient);
       const emailFrom = `Email-Tracker <no-reply@${
