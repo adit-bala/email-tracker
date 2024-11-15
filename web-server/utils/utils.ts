@@ -40,14 +40,18 @@ export async function updateUserData(userData: UserData, kv: Deno.Kv) {
   await kv.set(userKey, userData);
 }
 
-export const extractNameAndEmail = (input: string): { name: string; email: string } => {
-  const leftBracketIndex = input.indexOf('<');
-  const rightBracketIndex = input.indexOf('>');
-  
-  const name = input.slice(0, leftBracketIndex).trim();
-  const email = input.slice(leftBracketIndex + 1, rightBracketIndex);
+export const extractNamesAndEmails = (input: string): Array<{ name: string; email: string }> => {
+  const regex = /([^<,]+)<([^>]+)>/g;
+  const matches = input.matchAll(regex);
+  const result: Array<{ name: string; email: string }> = [];
 
-  return { name, email };
+  for (const match of matches) {
+    const name = match[1].trim();
+    const email = match[2].trim();
+    result.push({ name, email });
+  }
+
+  return result;
 };
 
 export function formatDate(timestamp: string) {
