@@ -71,6 +71,7 @@ const handleSendButtonClick = () => {
     subject: subject,
     dateAtTimeOfSend: Date.now().toString(),
   };
+  // Send the email data to the service worker
   chrome.runtime.sendMessage({
     message: "process_email",
     data: emailData,
