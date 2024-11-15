@@ -1,0 +1,32 @@
+name: Release Chrome Extension
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'chrome-extension/**'
+
+jobs:
+  build_and_release:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Zip Chrome Extension
+      run: |
+        cd chrome-extension
+        zip -r ../chrome-extension.zip .
+
+    - name: Create Release
+      id: create_release
+      uses: ncipollo/release-action@v1
+      with:
+        tag: 'chrome-extension-${{ github.run_number }}'
+        name: 'Chrome Extension Build ${{ github.run_number }}'
+        draft: false
+        prerelease: false
+        artifacts: 'chrome-extension.zip'
+        token: ${{ secrets.GITHUB_TOKEN }}
