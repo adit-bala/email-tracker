@@ -1,4 +1,44 @@
-import { EmailData } from "./types.ts";
+import { EmailData, UserData } from "./types.ts";
+import { transparentPixelPNG } from "./pixel.ts";
+import { Context } from "jsr:@oak/oak/context";
+
+
+
+export async function getUserData(email: string, kv: Deno.Kv): Promise<UserData> {
+  const userKey = ["users", email.toLowerCase()];
+  const result = await kv.get(userKey);
+
+  const now = Date.now();
+  const startOfMonth = new Date();
+  startOfMonth.setUTCDate(1);
+  startOfMonth.setUTCHours(0, 0, 0, 0);
+  const startOfMonthTimestamp = startOfMonth.getTime();
+
+  let userData: UserData;
+
+  if (result.value) {
+    userData = result.value as UserData;
+
+    if (userData.lastReset < startOfMonthTimestamp) { // If we're in a new month
+      userData.emailsSentThisMonth = 0;
+      userData.lastReset = now;
+    }
+  } else {
+    // Initialize new user data
+    userData = {
+      email: email.toLowerCase(),
+      emailsSentThisMonth: 0,
+      lastReset: now,
+    };
+  }
+
+  return userData;
+}
+
+export async function updateUserData(userData: UserData, kv: Deno.Kv) {
+  const userKey = ["users", userData.email];
+  await kv.set(userKey, userData);
+}
 
 export const extractNameAndEmail = (input: string): { name: string; email: string } => {
   const leftBracketIndex = input.indexOf('<');
@@ -33,6 +73,25 @@ export function calculateTimeToOpen(timestamp: string) {
     const hours = Math.floor(diffInSeconds / 3600);
     return `${hours} hour(s)`;
   }
+}
+
+export function returnImage(ctx: Context) {
+  ctx.response.headers.set("Content-Type", "image/png");
+  ctx.response.body = transparentPixelPNG;
+}
+
+
+// Prod KV Utility Functions
+export async function listAllKeysAndValues(kv: Deno.Kv): Promise<Array<{ key: string, value: unknown }>> {
+  const entries: Array<{ key: string, value: unknown }> = [];
+  const iterator = kv.list({ prefix: [] });
+  for await (const entry of iterator) {
+    entries.push({
+      key: entry.key.join('/'),
+      value: entry.value
+    });
+  }
+  return entries;
 }
 
 export async function getAllEmailData(kv: Deno.Kv) {

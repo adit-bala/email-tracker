@@ -1,14 +1,11 @@
 import { Application, Router } from "jsr:@oak/oak";
 import { Context } from "jsr:@oak/oak/context";
 import { oakCors } from "https://deno.land/x/cors/mod.ts";
-import Mailgun from "https://deno.land/x/mailgun@v1.3.0/index.ts";
-import { transparentPixelPNG } from "./utils/pixel.ts";
-import { EmailData } from "./utils/types.ts";
-import { extractNameAndEmail, formatDate, calculateTimeToOpen } from "./utils/utils.ts";
+import { EmailData, UserData } from "./utils/types.ts";
+import { extractNameAndEmail, formatDate, calculateTimeToOpen, getUserData, updateUserData, returnImage, listAllKeysAndValues } from "./utils/utils.ts";
 import { htmlTemplate } from "./emailTemplate.ts";
 
 // Setup
-
 // KV store
 let kv: Deno.Kv;
 try {
@@ -17,6 +14,9 @@ try {
   console.error("Failed to open KV store:", error);
   Deno.exit(1);
 }
+
+// View all Keys
+//console.log("All keys: ", await listAllKeysAndValues(kv));
 
 // Whitelist emails
 const whitelistEnv = Deno.env.get("WHITELIST_EMAILS");
@@ -41,12 +41,6 @@ if (whitelistEnv) {
   console.warn("WHITELIST_EMAILS not set in environment");
 }
 
-// email API
-const mailgun = new Mailgun({
-  key: Deno.env.get("EMAIL_API_KEY")!,
-  region: "us", // or "eu" depending on your Mailgun region
-  domain: Deno.env.get("DOMAIN")!,
-});
 
 async function authorizationMiddleware(
   ctx: Context,
@@ -132,74 +126,124 @@ async function isEmailWhitelisted(email: string): Promise<boolean> {
 const router = new Router();
 router.get("/:uuid/pixel.png", async (ctx) => {
   try {
-    const email_path_key = ctx.request.url.pathname;
-    const result = await kv.get(["emailData", email_path_key]);
-    if (!result.value) {
+    const emailPathKey = ctx.request.url.pathname;
+    const res = await kv.get(["emailData", emailPathKey]);
+    if (!res.value) {
       ctx.response.status = 404;
       return;
     }
-    const value = result.value as Record<string, string>;
-    const data: EmailData = {
-      subject: value?.subject,
-      email_id: value?.email_id,
-      sender: value?.sender,
-      recipient: value?.recipient,
-      dateAtTimeOfSend: value?.dateAtTimeOfSend,
-    };
-    if (
-      !data.email_id || !data.recipient ||
-      !data.sender || !data.dateAtTimeOfSend
-    ) {
+
+    const data = res.value as EmailData;
+    if (!data.email_id || !data.recipient || !data.sender || !data.dateAtTimeOfSend) {
       ctx.response.status = 404;
       return;
     }
-    // Update state
-    data.numberOfOpens = (data.numberOfOpens || 0) + 1;
-    await kv.set(["emailData", email_path_key], data);
 
-    // Send email opened notification
-    const emailLink =
-      `https://mail.google.com/mail/u/0/#inbox/${data.email_id}`;
-    console.log(
-      "Email Opened!: ",
-      emailLink,
-      " Number of opens: ",
-      data.numberOfOpens,
-    );
+    const emailKey = ["emailData", emailPathKey];
+    const getResult = await kv.get(emailKey);
+    if (!getResult.value) {
+      ctx.response.status = 404;
+      return;
+    }
 
-    // Send email opened notification
-    const emailSubject = `Your email: ${data.subject} was opened!`;
-    const { name: recipientName, email: recipientEmail } = extractNameAndEmail(data.recipient);
-    const { name: senderName, email: senderEmail } = extractNameAndEmail(data.sender);
-    const emailFrom = `no-reply@${Deno.env.get("DOMAIN")}`;
-    const emailHtml = htmlTemplate
-      .replace('{{recipient_name}}', recipientName)
-      .replace('{{recipient_email}}', recipientEmail)
-      .replace('{{email_subject}}', data.subject)
-      .replace('{{sender_email}}', senderEmail)
-      .replace('{{sent_date}}', formatDate(data.dateAtTimeOfSend))
-      .replace('{{time_to_open}}', calculateTimeToOpen(data.dateAtTimeOfSend))
-      .replace('{{read_date}}', formatDate(Date.now().toString()))
-      .replace('{{email_link}}', `https://mail.google.com/mail/u/0/#inbox/${data.email_id}`)
-      .replace('{{current_year}}', new Date().getFullYear().toString());
-    console.log("Email HTML: ", emailHtml);
-    await mailgun.send({
-      from: emailFrom,
-      to: senderEmail,
-      subject: emailSubject,
-      html: emailHtml,
-    });
-    console.log(`Email notification sent successfully to ${senderEmail}`);
+    const emailData = getResult.value as EmailData;
+    emailData.numberOfOpens = (emailData.numberOfOpens || 0) + 1;
 
-    ctx.response.headers.set("Content-Type", "image/png");
-    ctx.response.body = transparentPixelPNG;
+    const commitResult = await kv.atomic()
+      .check({ key: emailKey, versionstamp: getResult.versionstamp }) // Ensure that another thread didn't update the data in the meantime
+      .set(emailKey, emailData)
+      .commit();
+
+    console.log("emailData: ", emailData);
+
+    if (!commitResult.ok) {
+      returnImage(ctx);
+      // ctx.response.status = 500;
+      // ctx.response.body = { error: "Failed to update email data" };
+      return;
+    }
+
+    const numberOfOpens = emailData.numberOfOpens;
+
+    // Decide whether to send a notification
+    const sendNotificationOpens = [1, 2, 3, 10, 50, 100];
+
+    if (sendNotificationOpens.includes(numberOfOpens)) {
+      // Extract sender email
+      const { email: senderEmail } = extractNameAndEmail(emailData.sender);
+
+      // Get or initialize user data
+      const userData = await getUserData(senderEmail, kv);
+
+      // Check rate limit
+      if (userData.emailsSentThisMonth >= 500) {
+        // ctx.response.status = 429; // Too Many Requests
+        // ctx.response.body = { error: "Monthly email limit reached" };
+        returnImage(ctx);
+        return;
+      }
+
+      // Prepare email content
+      const userIndex = emailData.userIndex || 0;
+      const emailLink = `https://mail.google.com/mail/u/${userIndex}/#inbox/${emailData.email_id}`;
+      const emailSubject = `Your email: ${emailData.subject} was opened!`;
+      const { name: recipientName, email: recipientEmail } = extractNameAndEmail(emailData.recipient);
+      const emailFrom = `Email-Tracker <no-reply@${Deno.env.get("EMAIL_TRACKER_DOMAIN")}>`;
+
+      const replacements = {
+        '{{recipient_name}}': recipientName,
+        '{{recipient_email}}': recipientEmail,
+        '{{email_subject}}': emailData.subject,
+        '{{sender_email}}': senderEmail,
+        '{{sent_date}}': formatDate(emailData.dateAtTimeOfSend),
+        '{{time_to_open}}': calculateTimeToOpen(emailData.dateAtTimeOfSend),
+        '{{read_date}}': formatDate(Date.now().toString()),
+        '{{email_link}}': emailLink,
+      };
+
+      const emailHtml = Object.entries(replacements).reduce(
+        (html, [placeholder, value]) => html.replaceAll(placeholder, value),
+        htmlTemplate
+      );
+
+      // Send email notification using Resend API
+      try {
+        const res = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${Deno.env.get("RESEND_API_KEY")}`,
+          },
+          body: JSON.stringify({
+            from: emailFrom,
+            to: [senderEmail],
+            subject: emailSubject,
+            html: emailHtml,
+          }),
+        });
+
+        if (!res.ok) {
+          throw new Error(`Failed to send email notification: ${res.statusText}`);
+        }
+
+        // Update user data after successful send
+        userData.emailsSentThisMonth += 1;
+        await updateUserData(userData, kv);
+      } catch (error) {
+        // Log the error and proceed
+        console.error("Failed to send email notification:", error);
+      }
+    }
+
+    // Return the tracking pixel image
+    returnImage(ctx);
   } catch (error) {
+    // Handle unexpected errors
     console.error("Error processing pixel request:", error);
     ctx.response.status = 500;
     ctx.response.body = { error: "Internal server error" };
   }
 });
-
 router.post("/:uuid/pixel.png", authorizationMiddleware, async (ctx) => {
   try {
     const body = await ctx.request.body.json();
@@ -226,7 +270,6 @@ router;
 
 const app = new Application();
 
-// TODO: only allow from chrome extension in production
 app.use(oakCors({
   origin: "*",
   methods: ["GET", "POST"],
@@ -286,5 +329,24 @@ Deno.cron("Delete old email data", "0 0 * * *", async () => {
     console.log("Daily cleanup of old email data completed");
   } catch (error) {
     console.error("Error during daily cleanup of old email data:", error);
+  }
+});
+
+Deno.cron("Reset user email counts", "0 0 1 * *", async () => {
+  console.log("Starting monthly reset of user email counts");
+
+  const iterator = kv.list({ prefix: ["users"] });
+
+  try {
+    for await (const entry of iterator) {
+      const userData = entry.value as UserData;
+      userData.emailsSentThisMonth = 0;
+      userData.lastReset = Date.now();
+      await kv.set(entry.key, userData);
+      console.log(`Reset email count for user ${userData.email}`);
+    }
+    console.log("Monthly reset of user email counts completed");
+  } catch (error) {
+    console.error("Error during monthly reset of user email counts:", error);
   }
 });
