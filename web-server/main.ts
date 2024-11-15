@@ -2,14 +2,14 @@ import { Application, Router } from "jsr:@oak/oak";
 import { Context } from "jsr:@oak/oak/context";
 import { oakCors } from "https://deno.land/x/cors/mod.ts";
 import { EmailData, UserData } from "./utils/types.ts";
-import { 
-  extractNamesAndEmails, 
-  getUserData, 
-  updateUserData, 
-  formatDate, 
+import {
   calculateTimeToOpen,
+  extractNamesAndEmails,
+  formatDate,
+  getUserData,
+  listAllKeysAndValues,
   returnImage,
-  listAllKeysAndValues
+  updateUserData,
 } from "@utils";
 import { htmlTemplate } from "./emailTemplate.ts";
 
@@ -48,7 +48,6 @@ if (whitelistEnv) {
 } else {
   console.warn("WHITELIST_EMAILS not set in environment");
 }
-
 
 async function authorizationMiddleware(
   ctx: Context,
@@ -142,7 +141,10 @@ router.get("/:uuid/pixel.png", async (ctx) => {
     }
 
     const data = res.value as EmailData;
-    if (!data.email_id || !data.recipient || !data.sender || !data.dateAtTimeOfSend) {
+    if (
+      !data.email_id || !data.recipient || !data.sender ||
+      !data.dateAtTimeOfSend
+    ) {
       ctx.response.status = 404;
       return;
     }
@@ -194,34 +196,38 @@ router.get("/:uuid/pixel.png", async (ctx) => {
 
       // Prepare email content
       const userIndex = emailData.userIndex || 0;
-      const emailLink = `https://mail.google.com/mail/u/${userIndex}/#inbox/${emailData.email_id}`;
+      const emailLink =
+        `https://mail.google.com/mail/u/${userIndex}/#inbox/${emailData.email_id}`;
       const emailSubject = `Your email: ${emailData.subject} was opened!`;
-      const [{ name: recipientName, email: recipientEmail }] = extractNamesAndEmails(emailData.recipient);
-      const emailFrom = `Email-Tracker <no-reply@${Deno.env.get("EMAIL_TRACKER_DOMAIN")}>`;
+      const [{ name: recipientName, email: recipientEmail }] =
+        extractNamesAndEmails(emailData.recipient);
+      const emailFrom = `Email-Tracker <no-reply@${
+        Deno.env.get("EMAIL_TRACKER_DOMAIN")
+      }>`;
 
       const replacements = {
-        '{{recipient_name}}': recipientName,
-        '{{recipient_email}}': recipientEmail,
-        '{{email_subject}}': emailData.subject,
-        '{{sender_email}}': senderEmail,
-        '{{sent_date}}': formatDate(emailData.dateAtTimeOfSend),
-        '{{time_to_open}}': calculateTimeToOpen(emailData.dateAtTimeOfSend),
-        '{{read_date}}': formatDate(Date.now().toString()),
-        '{{email_link}}': emailLink,
+        "{{recipient_name}}": recipientName,
+        "{{recipient_email}}": recipientEmail,
+        "{{email_subject}}": emailData.subject,
+        "{{sender_email}}": senderEmail,
+        "{{sent_date}}": formatDate(emailData.dateAtTimeOfSend),
+        "{{time_to_open}}": calculateTimeToOpen(emailData.dateAtTimeOfSend),
+        "{{read_date}}": formatDate(Date.now().toString()),
+        "{{email_link}}": emailLink,
       };
 
       const emailHtml = Object.entries(replacements).reduce(
         (html, [placeholder, value]) => html.replaceAll(placeholder, value),
-        htmlTemplate
+        htmlTemplate,
       );
 
       // Send email notification using Resend API
       try {
-        const res = await fetch('https://api.resend.com/emails', {
-          method: 'POST',
+        const res = await fetch("https://api.resend.com/emails", {
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${Deno.env.get("RESEND_API_KEY")}`,
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${Deno.env.get("RESEND_API_KEY")}`,
           },
           body: JSON.stringify({
             from: emailFrom,
@@ -232,7 +238,9 @@ router.get("/:uuid/pixel.png", async (ctx) => {
         });
 
         if (!res.ok) {
-          throw new Error(`Failed to send email notification: ${res.statusText}`);
+          throw new Error(
+            `Failed to send email notification: ${res.statusText}`,
+          );
         }
 
         // Update user data after successful send

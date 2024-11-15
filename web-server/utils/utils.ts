@@ -2,9 +2,10 @@ import { EmailData, UserData } from "./types.ts";
 import { transparentPixelPNG } from "./pixel.ts";
 import { Context } from "jsr:@oak/oak/context";
 
-
-
-export async function getUserData(email: string, kv: Deno.Kv): Promise<UserData> {
+export async function getUserData(
+  email: string,
+  kv: Deno.Kv,
+): Promise<UserData> {
   const userKey = ["users", email.toLowerCase()];
   const result = await kv.get(userKey);
 
@@ -40,7 +41,9 @@ export async function updateUserData(userData: UserData, kv: Deno.Kv) {
   await kv.set(userKey, userData);
 }
 
-export const extractNamesAndEmails = (input: string): Array<{ name: string; email: string }> => {
+export const extractNamesAndEmails = (
+  input: string,
+): Array<{ name: string; email: string }> => {
   const regex = /([^<,]+)<([^>]+)>/g;
   const matches = input.matchAll(regex);
   const result: Array<{ name: string; email: string }> = [];
@@ -69,7 +72,7 @@ export function calculateTimeToOpen(timestamp: string) {
   const diffInSeconds = Math.floor((now - sentTimestamp) / 1000);
 
   if (diffInSeconds < 60) {
-    return 'less than a minute';
+    return "less than a minute";
   } else if (diffInSeconds < 3600) {
     const minutes = Math.floor(diffInSeconds / 60);
     return `${minutes} minute(s)`;
@@ -94,7 +97,10 @@ export async function getAllUserData(kv: Deno.Kv): Promise<UserData[]> {
   return users;
 }
 
-export async function deleteUserData(kv: Deno.Kv, email: string): Promise<void> {
+export async function deleteUserData(
+  kv: Deno.Kv,
+  email: string,
+): Promise<void> {
   const userKey = ["users", email.toLowerCase()];
   await kv.delete(userKey);
 }
@@ -114,7 +120,7 @@ export async function listAllKeys(kv: Deno.Kv): Promise<string[]> {
   const keys: string[] = [];
   const iterator = kv.list({ prefix: [] });
   for await (const entry of iterator) {
-    keys.push(entry.key.join('/'));
+    keys.push(entry.key.join("/"));
   }
   return keys;
 }
@@ -130,13 +136,15 @@ export async function deleteAllKeys(kv: Deno.Kv): Promise<number> {
 }
 
 // Prod KV Utility Functions
-export async function listAllKeysAndValues(kv: Deno.Kv): Promise<Array<{ key: string, value: unknown }>> {
-  const entries: Array<{ key: string, value: unknown }> = [];
+export async function listAllKeysAndValues(
+  kv: Deno.Kv,
+): Promise<Array<{ key: string; value: unknown }>> {
+  const entries: Array<{ key: string; value: unknown }> = [];
   const iterator = kv.list({ prefix: [] });
   for await (const entry of iterator) {
     entries.push({
-      key: entry.key.join('/'),
-      value: entry.value
+      key: entry.key.join("/"),
+      value: entry.value,
     });
   }
   return entries;
