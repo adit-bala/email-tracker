@@ -153,7 +153,7 @@ router.get("/:uuid/pixel.png", async (ctx) => {
     const data = res.value as EmailData;
     if (
       !data.email_id || !data.recipient || !data.sender ||
-      !data.dateAtTimeOfSend || data.storedAt
+      !data.dateAtTimeOfSend || !data.storedAt
     ) {
       ctx.response.status = 404;
       return;
