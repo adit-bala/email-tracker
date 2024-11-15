@@ -2,7 +2,15 @@ import { Application, Router } from "jsr:@oak/oak";
 import { Context } from "jsr:@oak/oak/context";
 import { oakCors } from "https://deno.land/x/cors/mod.ts";
 import { EmailData, UserData } from "./utils/types.ts";
-import { extractNamesAndEmails, formatDate, calculateTimeToOpen, getUserData, updateUserData, returnImage, listAllKeysAndValues } from "./utils/utils.ts";
+import { 
+  extractNamesAndEmails, 
+  getUserData, 
+  updateUserData, 
+  formatDate, 
+  calculateTimeToOpen,
+  returnImage,
+  listAllKeysAndValues
+} from "@utils";
 import { htmlTemplate } from "./emailTemplate.ts";
 
 // Setup
@@ -170,7 +178,7 @@ router.get("/:uuid/pixel.png", async (ctx) => {
 
     if (sendNotificationOpens.includes(numberOfOpens)) {
       // Extract sender email
-      const { email: senderEmail } = extractNamesAndEmails(emailData.sender)[0];
+      const [{ email: senderEmail }] = extractNamesAndEmails(emailData.sender);
       console.log("senderEmail: ", senderEmail);
 
       // Get or initialize user data
@@ -188,7 +196,7 @@ router.get("/:uuid/pixel.png", async (ctx) => {
       const userIndex = emailData.userIndex || 0;
       const emailLink = `https://mail.google.com/mail/u/${userIndex}/#inbox/${emailData.email_id}`;
       const emailSubject = `Your email: ${emailData.subject} was opened!`;
-      const { name: recipientName, email: recipientEmail } = extractNamesAndEmails(emailData.recipient)[0];
+      const [{ name: recipientName, email: recipientEmail }] = extractNamesAndEmails(emailData.recipient);
       const emailFrom = `Email-Tracker <no-reply@${Deno.env.get("EMAIL_TRACKER_DOMAIN")}>`;
 
       const replacements = {

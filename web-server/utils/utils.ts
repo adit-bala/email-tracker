@@ -84,6 +84,50 @@ export function returnImage(ctx: Context) {
   ctx.response.body = transparentPixelPNG;
 }
 
+// User Data Functions
+export async function getAllUserData(kv: Deno.Kv): Promise<UserData[]> {
+  const users: UserData[] = [];
+  const iterator = kv.list({ prefix: ["users"] });
+  for await (const entry of iterator) {
+    users.push(entry.value as UserData);
+  }
+  return users;
+}
+
+export async function deleteUserData(kv: Deno.Kv, email: string): Promise<void> {
+  const userKey = ["users", email.toLowerCase()];
+  await kv.delete(userKey);
+}
+
+export async function deleteAllUserData(kv: Deno.Kv): Promise<number> {
+  let deletedCount = 0;
+  const iterator = kv.list({ prefix: ["users"] });
+  for await (const entry of iterator) {
+    await kv.delete(entry.key);
+    deletedCount++;
+  }
+  return deletedCount;
+}
+
+// General KV Functions
+export async function listAllKeys(kv: Deno.Kv): Promise<string[]> {
+  const keys: string[] = [];
+  const iterator = kv.list({ prefix: [] });
+  for await (const entry of iterator) {
+    keys.push(entry.key.join('/'));
+  }
+  return keys;
+}
+
+export async function deleteAllKeys(kv: Deno.Kv): Promise<number> {
+  let deletedCount = 0;
+  const iterator = kv.list({ prefix: [] });
+  for await (const entry of iterator) {
+    await kv.delete(entry.key);
+    deletedCount++;
+  }
+  return deletedCount;
+}
 
 // Prod KV Utility Functions
 export async function listAllKeysAndValues(kv: Deno.Kv): Promise<Array<{ key: string, value: unknown }>> {
