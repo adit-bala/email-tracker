@@ -172,7 +172,7 @@ router.get("/:uuid/pixel.png", async (ctx) => {
     const currentTime = Date.now();
     const dateAtTimeOfSendMs = new Date(Number(emailData.dateAtTimeOfSend)).getTime();
     const timeDifferenceInSeconds = (currentTime - dateAtTimeOfSendMs) / 1000;
-    const thresholdInSeconds = 3;
+    const thresholdInSeconds = 5;
     if (timeDifferenceInSeconds <= thresholdInSeconds) {
       // The request came in too soon after sending the email
       console.log(
