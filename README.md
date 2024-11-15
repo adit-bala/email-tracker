@@ -56,9 +56,9 @@ Follow these steps to install and use the Chrome extension in developer mode:
    - The extension should now appear in the list of installed extensions.
    - Ensure there are no errors indicated.
 
-7. **Configure the Extension (If Necessary)**
+7. **Message the Creator for permission to use the extension**
 
-   - If the extension requires any setup, such as logging in or granting permissions, follow the on-screen prompts.
+   - Only authorized users can use the extension. If you are interested in using it, contact me at aditbala <at> berkeley <dot> edu
 
 ### Usage
 
