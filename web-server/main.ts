@@ -11,7 +11,9 @@ import {
   returnImage,
   updateUserData,
 } from "@utils";
-import { htmlTemplate } from "./emailTemplate.ts";
+import { htmlTemplate } from "./html/emailTemplate.ts";
+import { homePageHtml } from "./html/home.ts";
+import { privacyPolicyHtml } from "./html/privacy.ts";
 
 // Add subject mapping at the top of the file
 const subjectMapping: { [key: number]: string } = {
@@ -141,7 +143,14 @@ async function isEmailWhitelisted(email: string): Promise<boolean> {
 }
 
 const router = new Router();
-router.get("/:uuid/pixel.png", async (ctx) => {
+
+router.get("/", (ctx) => {
+  ctx.response.headers.set("Content-Type", "text/html");
+  ctx.response.body = homePageHtml;
+}).get("/privacy-policy", (ctx) => {
+  ctx.response.headers.set("Content-Type", "text/html");
+  ctx.response.body = privacyPolicyHtml;
+}).get("/:uuid/pixel.png", async (ctx) => {
   try {
     const emailPathKey = ctx.request.url.pathname;
     const res = await kv.get(["emailData", emailPathKey]);
