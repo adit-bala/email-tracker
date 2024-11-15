@@ -1,7 +1,7 @@
 console.log("Service worker is active!");
 
 let authToken = null;
-const DOMAIN = "email-track.deno.dev";
+const DOMAIN = "stealthbyte.deno.dev";
 const LOCALHOST = "localhost:8080";
 const isDev = false;
 const serverUrl = isDev ? `http://${LOCALHOST}` : `https://${DOMAIN}`;
