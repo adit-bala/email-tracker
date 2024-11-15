@@ -224,7 +224,7 @@ router.get("/:uuid/pixel.png", async (ctx) => {
 
       const recipients = extractNamesAndEmails(emailData.recipient);
       const recipientList = recipients.map(recipient => {
-        return `${recipient.name} <${recipient.email}>`;
+        return `${recipient.name} <a href="mailto:${recipient.email}">${recipient.email}</a>`;
       }).join(', ');
 
       const emailFrom = `Email-Tracker <no-reply@${
