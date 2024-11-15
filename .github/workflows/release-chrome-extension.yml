@@ -7,9 +7,13 @@ on:
     paths:
       - 'chrome-extension/**'
 
+
+
 jobs:
   build_and_release:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
     - name: Checkout repository
@@ -24,9 +28,10 @@ jobs:
       id: create_release
       uses: ncipollo/release-action@v1
       with:
-        tag: 'chrome-extension-${{ github.run_number }}'
+        tag: 'v${{ github.run_number }}'
         name: 'Chrome Extension Build ${{ github.run_number }}'
         draft: false
         prerelease: false
         artifacts: 'chrome-extension.zip'
         token: ${{ secrets.GITHUB_TOKEN }}
+        commit: ${{ github.sha }}
