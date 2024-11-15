@@ -153,7 +153,7 @@ router.get("/:uuid/pixel.png", async (ctx) => {
     const data = res.value as EmailData;
     if (
       !data.email_id || !data.recipient || !data.sender ||
-      !data.dateAtTimeOfSend
+      !data.dateAtTimeOfSend || data.storedAt
     ) {
       ctx.response.status = 404;
       return;
@@ -170,8 +170,7 @@ router.get("/:uuid/pixel.png", async (ctx) => {
     emailData.numberOfOpens = (emailData.numberOfOpens || 0) + 1;
 
     const currentTime = Date.now();
-    const dateAtTimeOfSendMs = new Date(Number(emailData.dateAtTimeOfSend)).getTime();
-    const timeDifferenceInSeconds = (currentTime - dateAtTimeOfSendMs) / 1000;
+    const timeDifferenceInSeconds = (currentTime - emailData.storedAt) / 1000;
     const thresholdInSeconds = 5;
     if (timeDifferenceInSeconds <= thresholdInSeconds) {
       // The request came in too soon after sending the email

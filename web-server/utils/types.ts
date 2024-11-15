@@ -4,9 +4,9 @@ export interface EmailData {
   sender: string;
   recipient: string;
   dateAtTimeOfSend: string;
-  userIndex?: string;
-  numberOfOpens?: number;
-  storedAt?: number;
+  userIndex: string;
+  numberOfOpens: number;
+  storedAt: number;
 }
 
 export interface UserData {
