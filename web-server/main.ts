@@ -143,17 +143,6 @@ async function isEmailWhitelisted(email: string): Promise<boolean> {
 const router = new Router();
 router.get("/:uuid/pixel.png", async (ctx) => {
   try {
-    const userAgent = ctx.request.headers.get("User-Agent") || "";
-    const isGmailProxy = userAgent.includes("GoogleImageProxy");
-
-    if (isGmailProxy) {
-      // Handle Gmail's prefetch request
-      console.log("Gmail proxy request detected. Adjusting tracking accordingly.");
-
-      // Return the tracking pixel image
-      returnImage(ctx);
-      return;
-    }
     const emailPathKey = ctx.request.url.pathname;
     const res = await kv.get(["emailData", emailPathKey]);
     if (!res.value) {
