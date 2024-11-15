@@ -1,6 +1,4 @@
-# Email Tracker Chrome Extension
-
-Track whether recipients have opened your email
+# Stealth Byte: An Email Tracker Chrome Extension
 
 ## Installation Guide (Developer Mode)
 
