@@ -143,6 +143,17 @@ async function isEmailWhitelisted(email: string): Promise<boolean> {
 const router = new Router();
 router.get("/:uuid/pixel.png", async (ctx) => {
   try {
+    const userAgent = ctx.request.headers.get("User-Agent") || "";
+    const isGmailProxy = userAgent.includes("GoogleImageProxy");
+
+    if (isGmailProxy) {
+      // Handle Gmail's prefetch request
+      console.log("Gmail proxy request detected. Adjusting tracking accordingly.");
+
+      // Return the tracking pixel image
+      returnImage(ctx);
+      return;
+    }
     const emailPathKey = ctx.request.url.pathname;
     const res = await kv.get(["emailData", emailPathKey]);
     if (!res.value) {
@@ -168,6 +179,19 @@ router.get("/:uuid/pixel.png", async (ctx) => {
 
     const emailData = getResult.value as EmailData;
     emailData.numberOfOpens = (emailData.numberOfOpens || 0) + 1;
+
+    const currentTime = Date.now();
+    const dateAtTimeOfSendMs = new Date(Number(emailData.dateAtTimeOfSend)).getTime();
+    const timeDifferenceInSeconds = (currentTime - dateAtTimeOfSendMs) / 1000;
+    const thresholdInSeconds = 3;
+    if (timeDifferenceInSeconds <= thresholdInSeconds) {
+      // The request came in too soon after sending the email
+      console.log(
+        `Request came in ${timeDifferenceInSeconds.toFixed(2)} seconds after sending email. Not counting as an open.`
+      );
+      returnImage(ctx);
+      return;
+    }
 
     const commitResult = await kv.atomic()
       .check({ key: emailKey, versionstamp: getResult.versionstamp }) // Ensure that another thread didn't update the data in the meantime
@@ -209,15 +233,17 @@ router.get("/:uuid/pixel.png", async (ctx) => {
 
       const emailSubject = subjectMapping[numberOfOpens].replace('{subject}', emailData.subject);
 
-      const [{ name: recipientName, email: recipientEmail }] =
-        extractNamesAndEmails(emailData.recipient);
+      const recipients = extractNamesAndEmails(emailData.recipient);
+      const recipientList = recipients.map(recipient => {
+        return `${recipient.name} <${recipient.email}>`;
+      }).join(', ');
+
       const emailFrom = `Email-Tracker <no-reply@${
         Deno.env.get("EMAIL_TRACKER_DOMAIN")
       }>`;
 
       const replacements = {
-        "{{recipient_name}}": recipientName,
-        "{{recipient_email}}": recipientEmail,
+        "{{recipient_list}}": recipientList,
         "{{email_subject}}": emailData.subject,
         "{{sender_email}}": senderEmail,
         "{{sent_date}}": formatDate(emailData.dateAtTimeOfSend),

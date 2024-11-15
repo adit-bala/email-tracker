@@ -122,7 +122,7 @@ export const htmlTemplate = `
       <!-- Email Information -->
       <div class="info">
         <span class="label">To:</span>
-        <span class="value">{{recipient_name}}, <a href="mailto:{{recipient_email}}">{{recipient_email}}</a></span>
+        <span class="value">{{recipient_list}}</span>
       </div>
       <div class="info">
         <span class="label">Subject:</span>
