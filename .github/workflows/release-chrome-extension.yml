@@ -24,13 +24,18 @@ jobs:
       run: |
         cd chrome-extension
         zip -r ../chrome-extension.zip .
+    - name: Install jq
+      run: sudo apt-get install -y jq
+    - name: Get version from manifest
+      id: get_version
+      run: echo "VERSION=$(jq -r .version chrome-extension/manifest.json)" >> $GITHUB_OUTPUT
 
     - name: Create Release
       id: create_release
       uses: ncipollo/release-action@v1
       with:
-        tag: 'v${{ github.run_number }}'
-        name: 'Chrome Extension Build ${{ github.run_number }}'
+        tag: 'v${{ steps.get_version.outputs.VERSION }}-${{ github.run_number }}'
+        name: 'StealthByte v${{ steps.get_version.outputs.VERSION }}'
         draft: false
         prerelease: false
         artifacts: 'chrome-extension.zip'
