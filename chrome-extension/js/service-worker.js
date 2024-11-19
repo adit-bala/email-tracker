@@ -3,7 +3,7 @@ console.log("Service worker is active!");
 let authToken = null;
 const DOMAIN = "stealthbyte.deno.dev";
 const LOCALHOST = "localhost:8080";
-const isDev = true;
+const isDev = false;
 const serverUrl = isDev ? `http://${LOCALHOST}` : `https://${DOMAIN}`;
 // Function to get OAuth2 token
 function getAuthToken(interactive) {
@@ -48,7 +48,7 @@ async function ensureAuthenticated() {
 }
 
 const MAX_RETRIES = 5;
-const DELAY_MS = 1000; // 1 second
+const DELAY_MS = 500; // .5 second
 const STORAGE_KEY_PREFIX = "email_sleep_"; // Prefix for storage keys
 
 // store sleep data
