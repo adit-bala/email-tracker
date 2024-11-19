@@ -3,7 +3,7 @@ console.log("Service worker is active!");
 let authToken = null;
 const DOMAIN = "stealthbyte.deno.dev";
 const LOCALHOST = "localhost:8080";
-const isDev = false;
+const isDev = true;
 const serverUrl = isDev ? `http://${LOCALHOST}` : `https://${DOMAIN}`;
 // Function to get OAuth2 token
 function getAuthToken(interactive) {

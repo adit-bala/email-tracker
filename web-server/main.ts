@@ -155,7 +155,7 @@ router.get("/", (ctx) => {
     const emailPathKey = ctx.request.url.pathname;
     const res = await kv.get(["emailData", emailPathKey]);
     if (!res.value) {
-      ctx.response.status = 404;
+      returnImage(ctx);
       return;
     }
 
@@ -164,16 +164,23 @@ router.get("/", (ctx) => {
       !data.email_id || !data.recipient || !data.sender ||
       !data.dateAtTimeOfSend || !data.storedAt
     ) {
-      ctx.response.status = 404;
+      returnImage(ctx);
       return;
     }
 
     const emailKey = ["emailData", emailPathKey];
     const getResult = await kv.get(emailKey);
     if (!getResult.value) {
-      ctx.response.status = 404;
+      returnImage(ctx);
       return;
     }
+    // Log the GET request details
+    console.log("GET request received for pixel tracking:");
+    console.log("URL:", ctx.request.url.toString());
+    console.log("UUID:", ctx.params.uuid);
+    console.log("Headers:", JSON.stringify(ctx.request.headers, null, 2));
+    console.log("IP Address:", ctx.request.ip);
+    console.log("User Agent:", ctx.request.headers.get("user-agent"));
 
     const emailData = getResult.value as EmailData;
     emailData.numberOfOpens = (emailData.numberOfOpens || 0) + 1;
@@ -290,8 +297,9 @@ router.get("/", (ctx) => {
   } catch (error) {
     // Handle unexpected errors
     console.error("Error processing pixel request:", error);
-    ctx.response.status = 500;
-    ctx.response.body = { error: "Internal server error" };
+    returnImage(ctx);
+    // ctx.response.status = 500;
+    // ctx.response.body = { error: "Internal server error" };
   }
 });
 router.post("/:uuid/pixel.png", authorizationMiddleware, async (ctx) => {

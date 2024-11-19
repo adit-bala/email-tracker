@@ -2,7 +2,7 @@ console.log("email-tracker: init");
 
 const DOMAIN = "stealthbyte.deno.dev";
 const LOCALHOST = "localhost:8080";
-const isDev = false;
+const isDev = true;
 const baseTrackingPixelUrl = isDev ? `http://${LOCALHOST}` : `https://${DOMAIN}`;
 let uniqueId;
 let emailBodyElement;
