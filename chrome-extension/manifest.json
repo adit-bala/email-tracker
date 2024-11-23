@@ -5,8 +5,6 @@
   "version": "0.3.0",
   "permissions": [
     "identity",
-    "scripting",
-    "activeTab",
     "tabs",
     "storage",
     "alarms"
