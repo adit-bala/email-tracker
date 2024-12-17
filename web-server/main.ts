@@ -187,7 +187,7 @@ router.get("/", (ctx) => {
 
     const currentTime = Date.now();
     const timeDifferenceInSeconds = (currentTime - emailData.storedAt) / 1000;
-    const thresholdInSeconds = 5;
+    const thresholdInSeconds = 10;
     if (timeDifferenceInSeconds <= thresholdInSeconds) {
       // The request came in too soon after sending the email
       console.log(
