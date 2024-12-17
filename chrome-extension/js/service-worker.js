@@ -35,9 +35,6 @@ function getAuthToken(interactive) {
 
 // Function to ensure authentication
 async function ensureAuthenticated() {
-  if (authToken) {
-    return authToken;
-  }
   try {
     // First, try to get the token non-interactively
     try {
