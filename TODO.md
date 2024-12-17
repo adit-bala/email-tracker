@@ -1,7 +1,5 @@
 ### Todo
 
-- [ ] Use Mutation Observer for fault tolerance
-
 ### In Progress 
 
 - [ ] Widget to show unopened emails
