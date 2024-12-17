@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Stealth Byte",
   "description": "See if recipients have opened your email",
-  "version": "0.3.0",
+  "version": "1.0.0",
   "permissions": [
     "identity",
     "tabs",
