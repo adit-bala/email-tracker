@@ -176,11 +176,7 @@ router.get("/", (ctx) => {
     }
     // Log the GET request details
     console.log("GET request received for pixel tracking:");
-    console.log("URL:", ctx.request.url.toString());
-    console.log("UUID:", ctx.params.uuid);
-    console.log("Headers:", JSON.stringify(ctx.request.headers, null, 2));
     console.log("IP Address:", ctx.request.ip);
-    console.log("User Agent:", ctx.request.headers.get("user-agent"));
 
     const emailData = getResult.value as EmailData;
     emailData.numberOfOpens = (emailData.numberOfOpens || 0) + 1;
