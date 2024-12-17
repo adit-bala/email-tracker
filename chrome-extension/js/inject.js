@@ -19,7 +19,7 @@ const logger = {
   },
 };
 
-info.log("email-tracker: init");
+logger.info("email-tracker: init");
 
 // DOM Utilities
 const findButtonByText = (text) => {
