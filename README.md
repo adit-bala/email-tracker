@@ -5,7 +5,6 @@
 ### Prerequisites
 
 - **Google Chrome** browser installed.
-- A local copy of the `chrome-extension` folder.
 
 ### Steps
 
@@ -29,5 +28,4 @@
 
 - **Permissions:**
   - The extension may request certain permissions to function correctly. Review these permissions and ensure you're comfortable granting them.
-  - 
 **Feel free to reach out if you encounter any issues or have questions about using the extension.**
