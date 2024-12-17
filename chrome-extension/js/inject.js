@@ -16,7 +16,7 @@ const logger = {
 };
 const DOMAIN = "stealthbyte.deno.dev";
 const LOCALHOST = "localhost:8080";
-const isDev = true;
+const isDev = false;
 const baseTrackingPixelUrl = isDev ? `http://${LOCALHOST}` : `https://${DOMAIN}`;
 let uniqueId;
 let emailBodyElement;

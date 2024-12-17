@@ -17,7 +17,7 @@ const logger = {
 let authToken = null;
 const DOMAIN = "stealthbyte.deno.dev";
 const LOCALHOST = "localhost:8080";
-const isDev = true;
+const isDev = false;
 const serverUrl = isDev ? `http://${LOCALHOST}` : `https://${DOMAIN}`;
 // Function to get OAuth2 token
 function getAuthToken(interactive) {
