@@ -1,5 +1,5 @@
 // Configuration and Logger
-const isDev = false;
+const isDev = true;
 const DOMAIN = "stealthbyte.deno.dev";
 const LOCALHOST = "localhost:8080";
 const baseTrackingPixelUrl = isDev ? `http://${LOCALHOST}` : `https://${DOMAIN}`;

@@ -7,7 +7,7 @@ import {
   extractNamesAndEmails,
   formatDate,
   getUserData,
-  listAllKeysAndValues,
+  getUserEmailsSorted,
   returnImage,
   updateUserData,
 } from "@utils";
@@ -21,7 +21,8 @@ const subjectMapping: { [key: number]: string } = {
   2: "Twice the attention! Your email '{subject}' was opened for the second time.",
   3: "Your email '{subject}' has caught their eye for the third time!",
   10: "10th open milestone—your email '{subject}' is making waves!",
-  20: "Your email '{subject}' has been revisited 20 times—keep the momentum going!",
+  20:
+    "Your email '{subject}' has been revisited 20 times—keep the momentum going!",
   50: "Half a century of opens! Your email '{subject}' is a hit.",
 };
 
@@ -187,7 +188,9 @@ router.get("/", (ctx) => {
     if (timeDifferenceInSeconds <= thresholdInSeconds) {
       // The request came in too soon after sending the email
       console.log(
-        `Request came in ${timeDifferenceInSeconds.toFixed(2)} seconds after sending email. Not counting as an open.`
+        `Request came in ${
+          timeDifferenceInSeconds.toFixed(2)
+        } seconds after sending email. Not counting as an open.`,
       );
       returnImage(ctx);
       return;
@@ -231,12 +234,15 @@ router.get("/", (ctx) => {
       const emailLink =
         `https://mail.google.com/mail/u/${userIndex}/#inbox/${emailData.email_id}`;
 
-      const emailSubject = subjectMapping[numberOfOpens].replace('{subject}', emailData.subject);
+      const emailSubject = subjectMapping[numberOfOpens].replace(
+        "{subject}",
+        emailData.subject,
+      );
 
       const recipients = extractNamesAndEmails(emailData.recipient);
-      const recipientList = recipients.map(recipient => {
+      const recipientList = recipients.map((recipient) => {
         return `${recipient.name} <a href="mailto:${recipient.email}">${recipient.email}</a>`;
-      }).join(', ');
+      }).join(", ");
 
       const emailFrom = `Email-Tracker <no-reply@${
         Deno.env.get("EMAIL_TRACKER_DOMAIN")
@@ -281,6 +287,8 @@ router.get("/", (ctx) => {
 
         // Update user data after successful send
         userData.emailsSentThisMonth += 1;
+        // Mark the user data as not cached to force frontend to refresh
+        userData.cached = false;
         await updateUserData(userData, kv);
       } catch (error) {
         // Log the error and proceed
@@ -297,7 +305,35 @@ router.get("/", (ctx) => {
     // ctx.response.status = 500;
     // ctx.response.body = { error: "Internal server error" };
   }
+})
+// endpoint to check if the user data has been updated since last being cached
+.get("/cache-status", authorizationMiddleware, async (ctx) => {
+  // Get the user's cache status
+  console.log("Checking cache status for user:", ctx.state.email);
+  const email = ctx.state.email;
+  const userData = await getUserData(email, kv);
+  console.log("Cache status:", userData.cached);
+  ctx.response.body = { cached: userData.cached };
+  ctx.response.status = 200;
+  ctx.response.headers.set("Content-Type", "application/json");
+})
+// endpoint to fetch all email data for a given user
+.get("/all-email-data", authorizationMiddleware, async (ctx) => {
+  // Get all email data for the user
+  console.log("Fetching all email data for user:", ctx.state.email);
+  const email = ctx.state.email;
+  const userData = await getUserData(email, kv);
+  const userEmails = await getUserEmailsSorted(email, kv);
+  console.log("All email data:", userEmails);
+  console.log("User data:", userData);
+  // Mark the user data as cached
+  userData.cached = true;
+  await updateUserData(userData, kv);
+  ctx.response.body = { userEmails, userData };
+  ctx.response.status = 200;
+  ctx.response.headers.set("Content-Type", "application/json");
 });
+
 router.post("/:uuid/pixel.png", authorizationMiddleware, async (ctx) => {
   try {
     const body = await ctx.request.body.json();
@@ -308,9 +344,18 @@ router.post("/:uuid/pixel.png", authorizationMiddleware, async (ctx) => {
       numberOfOpens: 0,
       storedAt: timestamp,
     };
-    console.log("email_key: ", email_path_key);
+    console.log("email_path_key: ", email_path_key);
     console.log("body: ", body);
+
+    // Store the email data
     await kv.set(["emailData", email_path_key], emailData);
+
+    // Update the user's cache status
+    const senderEmail = ctx.state.email;
+    const userData = await getUserData(senderEmail, kv);
+    userData.cached = false;
+    await updateUserData(userData, kv);
+
     ctx.response.status = 200;
     ctx.response.body = { message: "Email data stored successfully" };
   } catch (error) {

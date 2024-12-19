@@ -71,7 +71,9 @@ export const homePageHtml = `
     <a href="/privacy-policy" class="button">View Privacy Policy</a>
   </div>
   <div class="footer">
-    &copy; ${new Date().getFullYear()} Stealth Byte | <a href="/privacy-policy">Privacy Policy</a>
+    &copy; ${
+  new Date().getFullYear()
+} Stealth Byte | <a href="/privacy-policy">Privacy Policy</a>
   </div>
 </body>
 </html>

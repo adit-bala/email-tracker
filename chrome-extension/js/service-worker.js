@@ -17,8 +17,8 @@ const logger = {
 let authToken = null;
 const DOMAIN = "stealthbyte.deno.dev";
 const LOCALHOST = "localhost:8080";
-const isDev = false;
-const serverUrl = isDev ? `http://${LOCALHOST}` : `https://${DOMAIN}`;
+const isDev = true;
+const SERVER_URL = isDev ? `http://${LOCALHOST}` : `https://${DOMAIN}`;
 // Function to get OAuth2 token
 function getAuthToken(interactive) {
   return new Promise((resolve, reject) => {
@@ -140,6 +140,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.message === "process_email") {
     logger.info("Processing email data:", request.data.subject);
     processEmail(request.data, sender); // Pass sender to processEmail
+  }
+  if (request.message === "fetch_user_data") {
+    fetchUserData().then(sendResponse);
+    return true;  // Indicates that the response is sent asynchronously
   }
 });
 
@@ -282,7 +286,7 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
         // Send a notification to the server
         try {
           const serverResponse = await fetch(
-            `${serverUrl}/${uniqueId}/pixel.png`,
+            `${SERVER_URL}/${uniqueId}/pixel.png`,
             {
               method: "POST",
               headers: {
@@ -333,3 +337,88 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
     logger.error(`Error handling alarm "${sleepId}":`, error.message);
   }
 });
+
+async function fetchUserData() {
+  logger.info("Fetching user data...");
+  try {
+    const token = await ensureAuthenticated();
+    logger.info("Authentication token obtained");
+
+    const cacheStatus = await fetchCacheStatus(token);
+    logger.info("Cache status:", cacheStatus);
+
+    if (!cacheStatus.cached) {
+      logger.info("Cache is invalid, fetching new data from server");
+      const data = await fetchAllEmailData(token);
+      logger.info("New data fetched from server");
+      await storeDataInLocalStorage(data);
+      logger.info("New data stored in local storage");
+      return data;
+    } else {
+      logger.info("Cache is valid, retrieving data from local storage");
+      return await getDataFromLocalStorage();
+    }
+  } catch (error) {
+    logger.error('Error in fetchUserData:', error);
+    return { error: 'Failed to fetch user data' };
+  }
+}
+
+async function fetchCacheStatus(token) {
+  logger.info("Fetching cache status from server");
+  try {
+    const response = await fetch(`${SERVER_URL}/cache-status`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    const data = await response.json();
+    logger.info("Cache status received:", data);
+    return data;
+  } catch (error) {
+    logger.error('Error fetching cache status:', error);
+    throw error;
+  }
+}
+
+async function fetchAllEmailData(token) {
+  logger.info("Fetching all email data from server");
+  try {
+    const response = await fetch(`${SERVER_URL}/all-email-data`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    const data = await response.json();
+    logger.info("All email data received");
+    return data;
+  } catch (error) {
+    logger.error('Error fetching all email data:', error);
+    throw error;
+  }
+}
+
+async function storeDataInLocalStorage(data) {
+  logger.info("Storing data in local storage");
+  return new Promise((resolve) => {
+    chrome.storage.local.set({ 'userData': data }, () => {
+      logger.info("Data stored in local storage");
+      resolve();
+    });
+  });
+}
+
+async function getDataFromLocalStorage() {
+  logger.info("Retrieving data from local storage");
+  return new Promise((resolve) => {
+    chrome.storage.local.get('userData', (result) => {
+      if (result.userData) {
+        logger.info("Data retrieved from local storage");
+        resolve(result.userData);
+      } else {
+        logger.warn("No data found in local storage");
+        resolve(null);
+      }
+    });
+  });
+}

@@ -30,5 +30,8 @@
       "https://www.googleapis.com/auth/userinfo.profile"
     ]
   },
-  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAo+GASpGqfyteWsX4CNqnyRpsDuH/ZbIfQemxI8mJifK2NZC+VsxBTULNsJj+V8vgFeTu5N0R2Gz5mTgiYnzRIo2xUfWUeNnC2xS2XigBYkGBziY7cT/eHFTT5x7pinEKK/FwByhlYfwHm6lOlrqWQJCnliUSfHMRCeVakh7hB6V7G2tt/CohZhmNKxPx3azsqSMq1zhtZc5jzSYcomfDO5SdO1mJ3ZXMweAERXs0AAYJ8vneDc0FzkPIeQVipSQhxSqeObtAK9jaM1SPaIZSoQ997+mrkRXXbvYhNBtiQ/eHoNIovarim0eYLbi80OfLhFqX6EYJGSFLHjYSHlpVeQIDAQAB"
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAo+GASpGqfyteWsX4CNqnyRpsDuH/ZbIfQemxI8mJifK2NZC+VsxBTULNsJj+V8vgFeTu5N0R2Gz5mTgiYnzRIo2xUfWUeNnC2xS2XigBYkGBziY7cT/eHFTT5x7pinEKK/FwByhlYfwHm6lOlrqWQJCnliUSfHMRCeVakh7hB6V7G2tt/CohZhmNKxPx3azsqSMq1zhtZc5jzSYcomfDO5SdO1mJ3ZXMweAERXs0AAYJ8vneDc0FzkPIeQVipSQhxSqeObtAK9jaM1SPaIZSoQ997+mrkRXXbvYhNBtiQ/eHoNIovarim0eYLbi80OfLhFqX6EYJGSFLHjYSHlpVeQIDAQAB",
+  "action": {
+    "default_popup": "popup.html"
+  }
 }

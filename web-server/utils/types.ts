@@ -13,4 +13,5 @@ export interface UserData {
   email: string;
   emailsSentThisMonth: number;
   lastReset: number;
+  cached: boolean;
 }

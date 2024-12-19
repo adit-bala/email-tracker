@@ -30,6 +30,7 @@ export async function getUserData(
       email: email.toLowerCase(),
       emailsSentThisMonth: 0,
       lastReset: now,
+      cached: false,
     };
   }
 
@@ -39,6 +40,32 @@ export async function getUserData(
 export async function updateUserData(userData: UserData, kv: Deno.Kv) {
   const userKey = ["users", userData.email];
   await kv.set(userKey, userData);
+}
+
+export async function getUserEmailsSorted(
+  email: string,
+  kv: Deno.Kv,
+): Promise<EmailData[]> {
+  const lowercaseEmail = email.toLowerCase();
+  const iterator = kv.list({ prefix: ["emailData"] });
+  const senderCache = new Map<string, string>();
+
+  return await Array.fromAsync(iterator)
+    .then((entries) =>
+      entries
+        .map((entry) => entry.value as EmailData)
+        .filter((emailData) => {
+          let senderEmail: string;
+          if (senderCache.has(emailData.sender)) {
+            senderEmail = senderCache.get(emailData.sender)!;
+          } else {
+            senderEmail = extractNamesAndEmails(emailData.sender)[0].email.toLowerCase();
+            senderCache.set(emailData.sender, senderEmail);
+          }
+          return senderEmail === lowercaseEmail;
+        })
+        .sort((a, b) => Number(b.dateAtTimeOfSend) - Number(a.dateAtTimeOfSend))
+    );
 }
 
 export const extractNamesAndEmails = (
